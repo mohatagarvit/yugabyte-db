@@ -1495,6 +1495,7 @@ void ReplicaState::SetLeaderNoOpCommittedUnlocked(bool value) {
 }
 
 bool ReplicaState::GetLeaderNoOpCommittedUnlocked() {
+  DCHECK(IsLocked());
   return leader_no_op_committed_;
 }
 

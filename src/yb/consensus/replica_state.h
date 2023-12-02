@@ -430,7 +430,7 @@ class ReplicaState {
 
   void SetLeaderNoOpCommittedUnlocked(bool value);
 
-  bool GetLeaderNoOpCommittedUnlocked();
+  bool GetLeaderNoOpCommittedUnlocked() const;
   
   void NotifyReplicationFinishedUnlocked(
       const ConsensusRoundPtr& round, const Status& status, int64_t leader_term,
