@@ -264,10 +264,12 @@ class ClusterLoadBalancer {
 
   Result<bool> GetCandidateToMoveLeaderWithinAffinityZone(
     const std::vector<TabletServerId>& sorted_leader_load,
+    const TabletId& tablet_id,
     const TabletServerId& from_ts,
     TabletServerId* to_ts);
 
   Result<bool> GetCandidateToMoveLeaderWithinAffinitizedPriorities(
+    const TabletId& tablet_id,
     const TabletServerId& from_ts,
     TabletServerId* to_ts);
   

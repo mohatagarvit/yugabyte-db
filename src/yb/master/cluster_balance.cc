@@ -1310,6 +1310,7 @@ Result<bool> ClusterLoadBalancer::GetLeaderToMove(
 
 Result<bool> ClusterLoadBalancer::GetCandidateToMoveLeaderWithinAffinityZone(
     const vector<TabletServerId>& sorted_leader_load,
+    const TabletId& tablet_id,
     const TabletServerId& from_ts,
     TabletServerId* to_ts) {
   if(sorted_leader_load.empty()){
@@ -1328,19 +1329,24 @@ Result<bool> ClusterLoadBalancer::GetCandidateToMoveLeaderWithinAffinityZone(
       // New TS to move leader to is the same as the current TS.
       continue;
     }
-    *to_ts = low_load_uuid;
-    return true;
+    // Check if tserver we are moving to already has a replica of the tablet.
+    if(state_->per_ts_meta_[low_load_uuid].running_tablets.find(tablet_id)
+        != state_->per_ts_meta_[low_load_uuid].running_tablets.end()) {
+      *to_ts = low_load_uuid;
+      return true;
+    }
   }
   return false;
 }
 
 Result<bool> ClusterLoadBalancer::GetCandidateToMoveLeaderWithinAffinitizedPriorities(
+    const TabletId& tablet_id,
     const TabletServerId& from_ts,
     TabletServerId* to_ts) {
     // std::string* to_ts_path) {
   for (const auto& leader_set : state_->sorted_leader_load_) {
     if (VERIFY_RESULT(GetCandidateToMoveLeaderWithinAffinityZone(
-      leader_set, from_ts, to_ts))) {
+      leader_set, tablet_id, from_ts, to_ts))) {
       return true;
     }
   }
@@ -1535,7 +1541,7 @@ Status ClusterLoadBalancer::RemoveReplica(
   LOG(INFO) << Substitute("Removing replica $0 from tablet $1", ts_uuid, tablet_id);
   // Leader should first try to stepdown to a TS in the preferred zone.
   TabletServerId* new_leader_ts_uuid = nullptr;
-  if(VERIFY_RESULT(GetCandidateToMoveLeaderWithinAffinitizedPriorities(ts_uuid, 
+  if(VERIFY_RESULT(GetCandidateToMoveLeaderWithinAffinitizedPriorities(tablet_id, ts_uuid, 
                                                                       new_leader_ts_uuid))){
     const TabletServerId& to_uuid = *new_leader_ts_uuid;
     RETURN_NOT_OK(SendReplicaChanges(GetTabletMap().at(tablet_id), ts_uuid, false /* is_add */,
